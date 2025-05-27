@@ -1,0 +1,38 @@
+/* app/nprogress.css */
+
+/* Container to prevent pointer events */
+#nprogress {
+  pointer-events: none;
+}
+
+/* The bar itself */
+#nprogress .bar {
+  background: linear-gradient(90deg, #4F46E5, #818CF8); /* indigo-600 to indigo-400 */
+  height: 6px; /* Thicker */
+  position: fixed;
+  z-index: 9999;
+  top: 0;
+  left: 0;
+  width: 100%;
+  border-radius: 3px; /* Rounded edges for modern look */
+  box-shadow: 0 0 8px #9d50bbcc; /* Soft glow */
+  transition: all 0.3s ease-out; /* Smooth animation */
+}
+
+/* The "peg" that creates the moving shine effect */
+#nprogress .peg {
+  display: block;
+  position: absolute;
+  right: 0;
+  width: 100px;
+  height: 100%;
+  box-shadow: 0 0 10px #4F46E5, 0 0 5px #4F46E5;
+  opacity: 0.6;
+  transform: rotate(3deg) translate(0, -4px);
+  border-radius: 3px;
+}
+
+/* Optional: hide spinner */
+#nprogress .spinner {
+  display: none;
+}
