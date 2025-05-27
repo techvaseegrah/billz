@@ -349,4 +349,4 @@ model Tax {
 
   @@index([organisationId])
   @@map("tax")
-}
+}   
