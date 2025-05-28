@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation"
 import { toast } from "react-toastify"
 import { Select } from "@/components/ui/Select"
 import { MandateModal } from "@/components/mandate/MandateModal"
+import { BillingAddressForm, type BillingAddressData } from "@/components/billing/BillingAddressForm"
+import { MapPin, Plus, Check } from "lucide-react"
 
 interface ShippingMethod {
   id: number
@@ -52,6 +54,19 @@ export default function OnlineBillPage() {
   const [taxAmount, setTaxAmount] = useState<number>(0)
   const [showCustomShippingModal, setShowCustomShippingModal] = useState(false)
 
+  // Billing Address States
+  const [includeBillingAddress, setIncludeBillingAddress] = useState(false)
+  const [billingAddress, setBillingAddress] = useState<BillingAddressData>({
+    name: "",
+    phone: "",
+    email: "",
+    flatNo: "",
+    street: "",
+    district: "",
+    state: "",
+    pincode: "",
+  })
+
   const handleUpgradeClick = () => setShowModal(true)
   const handleClose = () => setShowModal(false)
 
@@ -86,11 +101,12 @@ export default function OnlineBillPage() {
   }, [selectedShippingId, items, shippingMethods, customShipping, useCustomShipping])
 
   useEffect(() => {
-  if (!taxRate) return setTaxAmount(0)
-  const subtotal = items.reduce((sum, item) => sum + item.total, 0)
-  const tax = taxRate.type === "Percentage" ? (subtotal * taxRate.value) / 100 : taxRate.value
-  setTaxAmount(tax)
-}, [items, taxRate])
+    if (!taxRate) return setTaxAmount(0)
+    const subtotal = items.reduce((sum, item) => sum + item.total, 0)
+    const baseAmount = subtotal + shippingCost
+    const tax = taxRate.type === "Percentage" ? (baseAmount * taxRate.value) / 100 : taxRate.value
+    setTaxAmount(tax)
+  }, [items, shippingCost, taxRate])
 
   useEffect(() => {
     if (shippingMethods.length === 0 || items.length === 0) return
@@ -152,8 +168,33 @@ export default function OnlineBillPage() {
     setShippingCost(0)
     setCustomShipping({ name: "Custom Shipping", price: 0 })
     setUseCustomShipping(false)
+    setIncludeBillingAddress(false)
+    setBillingAddress({
+      name: "",
+      phone: "",
+      email: "",
+      flatNo: "",
+      street: "",
+      district: "",
+      state: "",
+      pincode: "",
+    })
     if (customerFormRef.current) customerFormRef.current.resetForm()
     if (productTableRef.current) productTableRef.current.resetTable()
+  }
+
+  const areAddressesSame = (billing: BillingAddressData, customer: CustomerDetails) => {
+    // Compare all address fields
+    return (
+      billing.name.trim().toLowerCase() === customer.name?.trim().toLowerCase() &&
+      billing.phone.trim() === customer.phone?.trim() &&
+      billing.email.trim().toLowerCase() === customer.email?.trim().toLowerCase() &&
+      billing.flatNo.trim().toLowerCase() === customer.flatNo?.trim().toLowerCase() &&
+      billing.street.trim().toLowerCase() === customer.street?.trim().toLowerCase() &&
+      billing.district.trim().toLowerCase() === customer.district?.trim().toLowerCase() &&
+      billing.state.trim().toLowerCase() === customer.state?.trim().toLowerCase() &&
+      billing.pincode.trim() === customer.pincode?.trim()
+    )
   }
 
   const handleSubmit = async () => {
@@ -162,7 +203,13 @@ export default function OnlineBillPage() {
     if (shippingMethods.length > 0 && !selectedShippingId && !useCustomShipping)
       return toast.error("Please select a shipping method.")
 
+    // Check if billing and shipping addresses are the same
+    if (includeBillingAddress && areAddressesSame(billingAddress, customer)) {
+      return toast.error("Billing address and shipping address cannot be the same. Please provide different addresses.")
+    }
+
     setIsLoading(true)
+    console.log("Submitting billing address:", includeBillingAddress ? billingAddress : null)
     try {
       let customerId = customer.id
       if (customer.id) {
@@ -183,23 +230,31 @@ export default function OnlineBillPage() {
         customerId = data.id
       }
 
+      // Prepare the request payload
+      const payload = {
+        customerId,
+        items,
+        billingMode: "online",
+        notes: notes.trim() || null,
+        shippingMethodId: useCustomShipping ? null : shippingMethods.length === 0 ? null : selectedShippingId,
+        customShipping: useCustomShipping
+          ? {
+              name: customShipping.name,
+              price: customShipping.price,
+            }
+          : null,
+        taxAmount,
+      }
+
+      // Only include billingAddress if user selected it
+      if (includeBillingAddress) {
+        payload.billingAddress = billingAddress
+      }
+
       const res = await fetch("/api/billing/online", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customerId,
-          items,
-          billingMode: "online",
-          notes: notes.trim() || null,
-          shippingMethodId: useCustomShipping ? null : shippingMethods.length === 0 ? null : selectedShippingId,
-          customShipping: useCustomShipping
-            ? {
-                name: customShipping.name,
-                price: customShipping.price,
-              }
-            : null,
-          taxAmount,
-        }),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
@@ -238,6 +293,100 @@ export default function OnlineBillPage() {
             }, 100)
           }}
         />
+      </div>
+
+      {/* Enhanced Billing Address Section */}
+      <div className="bg-white shadow-sm rounded-lg overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div
+                className={`p-2 rounded-lg transition-colors duration-200 ${
+                  includeBillingAddress ? "bg-indigo-100 text-indigo-600" : "bg-gray-100 text-gray-400"
+                }`}
+              >
+                <MapPin className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Billing Address</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {includeBillingAddress ? "Billing address is enabled" : "Add a separate billing address"}
+                </p>
+              </div>
+            </div>
+
+            {/* Enhanced Toggle Switch */}
+            <div className="flex items-center gap-3">
+              <span
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  includeBillingAddress ? "text-gray-400" : "text-gray-700"
+                }`}
+              >
+                Optional
+              </span>
+              <button
+                onClick={() => {
+                  setIncludeBillingAddress(!includeBillingAddress)
+                  if (includeBillingAddress) {
+                    // Reset billing address when unchecked
+                    setBillingAddress({
+                      name: "",
+                      phone: "",
+                      email: "",
+                      flatNo: "",
+                      street: "",
+                      district: "",
+                      state: "",
+                      pincode: "",
+                    })
+                  }
+                }}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none ${
+                  includeBillingAddress ? "bg-indigo-600" : "bg-gray-200"
+                }`}
+                role="switch"
+                aria-checked={includeBillingAddress}
+                aria-label="Toggle billing address"
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                    includeBillingAddress ? "translate-x-6" : "translate-x-1"
+                  }`}
+                >
+                  {includeBillingAddress && <Check className="w-3 h-3 text-indigo-600 absolute top-0.5 left-0.5" />}
+                </span>
+              </button>
+              <span
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  includeBillingAddress ? "text-indigo-600" : "text-gray-400"
+                }`}
+              >
+                Enabled
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Content Area with Smooth Transition */}
+        <div
+          className={`transition-all duration-300 ease-in-out ${
+            includeBillingAddress ? "max-h-[800px] opacity-100" : "max-h-0 opacity-0"
+          } overflow-hidden`}
+        >
+          <div className="p-6">
+            <BillingAddressForm initialData={billingAddress} onChange={setBillingAddress} />
+          </div>
+        </div>
+
+        {/* Enhanced Empty State */}
+        {!includeBillingAddress && (
+          <div className="p-8 text-center">
+            <h3 className="text-sm font-medium text-gray-900 mb-2">No billing address</h3>
+            <p className="text-sm text-gray-500 mb-4 max-w-sm mx-auto">
+              Enable the toggle above to add a separate billing address for this order
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="bg-white shadow-sm rounded-lg p-6">
@@ -399,10 +548,12 @@ export default function OnlineBillPage() {
                   <input
                     type="number"
                     value={customShipping.price}
-                    onChange={(e) => setCustomShipping({ 
-                      ...customShipping, 
-                      price: e.target.value === '' ? '' : Number(e.target.value) 
-                    })}
+                    onChange={(e) =>
+                      setCustomShipping({
+                        ...customShipping,
+                        price: e.target.value === "" ? "" : Number(e.target.value),
+                      })
+                    }
                     placeholder="Enter price"
                     className="w-full p-2.5 border border-gray-200 rounded-md focus:border-gray-400 focus:ring-0 transition-colors placeholder-gray-300"
                   />

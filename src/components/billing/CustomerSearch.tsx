@@ -8,13 +8,23 @@ interface CustomerDetails {
   id?: number;
   name: string;
   phone: string;
-  email: string;
+  email: string;  
   flatNo: string;
   street: string;
   district: string;
   state: string;
   pincode: string;
   city?: string;
+
+    // Billing address fields
+    billingFlatNo: string;
+    billingStreet: string;
+    billingDistrict: string;
+    billingState: string;
+    billingPincode: string;
+    billingCity?: string;
+    sameAsShipping: boolean;
+    
 }
 
 interface CustomerFormProps {
@@ -32,6 +42,12 @@ const initialCustomerState: CustomerDetails = {
   state: '',
   pincode: '',
   city: '',
+  billingFlatNo: '',
+  billingStreet: '',
+  billingDistrict: '',
+  billingState: '',
+  billingPincode: '',
+  sameAsShipping: false
 };
 
 async function getPincodeDetails(pincode: string) {
