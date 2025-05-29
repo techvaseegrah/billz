@@ -19,7 +19,7 @@ export default function Navbar() {
     setShowRegister(false);
     setShowLogin(true);
   };
-
+  
   return (
     <>
       <nav className="fixed w-full bg-white/95 backdrop-blur-sm z-40 shadow-sm">
@@ -61,8 +61,6 @@ export default function Navbar() {
           </div>
         </div>
       </nav>
-
-
     </>
   );
 }

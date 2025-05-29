@@ -31,6 +31,9 @@ model Organisation {
   subscriptionType       String    @map("subscription_type")
   endDate                DateTime  @map("end_date") @db.DateTime(0)
   whatsappNumber         String?   @map("whatsapp_number")
+  wabaToken              String?   @map("waba_token") @db.Text
+  waAccessToken          String?   @map("wa_access_token") @db.Text
+  waKey                  String?   @map("wa_key") @db.Text
   resetToken             String?   @map("reset_token")
   resetTokenExpiry       DateTime? @map("reset_token_expiry")
   createdAt              DateTime  @default(now())

@@ -8,22 +8,48 @@ export async function PUT(request: Request) {
   try {
     const session = await getServerSession(authOptions);
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        status: 401,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     const data = await request.json();
+    console.log('Received data:', data);
+    
     const organisation = await prisma.organisation.update({
       where: {
         id: parseInt(session.user.id)
       },
-      data
+      data: {
+        whatsappNumber: data.whatsappNumber,
+        wabaToken: data.wabaToken,
+        waAccessToken: data.waAccessToken,
+        waKey: data.waKey
+      }
     });
 
-    return NextResponse.json(organisation);
+    return new Response(JSON.stringify({ 
+      success: true, 
+      data: {
+        whatsappNumber: organisation.whatsappNumber,
+        wabaToken: organisation.wabaToken,
+        waAccessToken: organisation.waAccessToken,
+        waKey: organisation.waKey
+      }
+    }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
+
   } catch (error) {
-    return NextResponse.json(
-      { error: 'Failed to update shop details' },
-      { status: 500 }
-    );
+    console.error('Error updating shop details:', error);
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: 'Failed to update WhatsApp settings' 
+    }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 }
